@@ -1,12 +1,7 @@
-mod lib1;
-
-use winit::{
-    application::ApplicationHandler,
-    event::*,
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    keyboard::{KeyCode, PhysicalKey},
-    window::{Window, WindowId},
-};
+use winit::application::ApplicationHandler;
+use winit::event::WindowEvent;
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::window::{Window, WindowId};
 
 #[derive(Default)]
 struct App {
@@ -15,28 +10,15 @@ struct App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.window = Some(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
+        self.window = Some(event_loop.create_window(Window::default_attributes()).unwrap());
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        state: ElementState::Pressed,
-                        physical_key: PhysicalKey::Code(KeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => {
+            WindowEvent::CloseRequested => {
                 println!("The close button was pressed; stopping");
                 event_loop.exit();
-            }
+            },
             WindowEvent::RedrawRequested => {
                 // Redraw the application.
                 //
@@ -72,4 +54,5 @@ pub fn run() {
 
     let mut app = App::default();
     event_loop.run_app(&mut app);
+
 }
