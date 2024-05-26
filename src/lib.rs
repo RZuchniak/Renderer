@@ -8,6 +8,102 @@ use winit::{
     window::{Window, WindowId},
 };
 
+struct State<'a> {
+    surface: wgpu::Surface<'a>,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    size: winit::dpi::PhysicalSize<u32>,
+    // The window must be declared after the surface so
+    // it gets dropped after it as the surface contains
+    // unsafe references to the window's resources.
+    window: &'a Window,
+}
+
+impl<'a> State<'a> {
+    // Creating some of the wgpu types requires async code
+    async fn new(window: &'a Window) -> State<'a> {
+        let size = window.inner_size();
+
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            #[cfg(not(target_arch="wasm32"))]
+            backends: wgpu::Backends::PRIMARY,
+            #[cfg(target_arch="wasm32")]
+            backends: wgpu::Backends::GL,
+            ..Default::default()
+        });
+
+        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+
+        let adapter = instance.request_adapter(
+            &wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            },
+        ).await.unwrap();
+
+        let (device, queue) = adapter.request_device(
+            &wgpu::DeviceDescriptor {
+                required_features: wgpu::Features::empty(),
+                required_limits: if cfg!(target_arch = "wasm32") {
+                    wgpu::Limits::downlevel_webgl2_defaults()
+                } else {
+                    wgpu::Limits::default()
+                },
+                label: None,
+            },
+            None,
+        ).await.unwrap();
+
+        let surface_caps = surface.get_capabilities(&adapter);
+
+        let surface_format = surface_caps.formats.iter()
+            .find(|f| f.is_srgb())
+            .copied()
+            .unwrap_or(surface_caps.formats[0]);
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: size.width,
+            height: size.height,
+            present_mode: surface_caps.present_modes[0],
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        Self {
+            window,
+            surface,
+            device,
+            queue,
+            config,
+            size,
+        }
+    }
+
+    pub fn window(&self) -> &Window {
+        &self.window
+    }
+
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        todo!()
+    }
+
+    fn input(&mut self, event: &WindowEvent) -> bool {
+        todo!()
+    }
+
+    fn update(&mut self) {
+        todo!()
+    }
+
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        todo!()
+    }
+}
+
 #[derive(Default)]
 struct App {
     window: Option<Window>,
@@ -53,12 +149,25 @@ impl ApplicationHandler for App {
                 // can render here instead.
                 self.window.as_ref().unwrap().request_redraw();
             }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        state: ElementState::Pressed,
+                        physical_key: PhysicalKey::Code(KeyCode::ArrowUp),
+                        ..
+                    },
+                ..
+            } => {
+                println!("Up arrow");
+                // event_loop.exit();
+            }
             _ => (),
         }
     }
 }
 
-pub fn run() {
+pub async fn run() {
+
     let event_loop = EventLoop::new().unwrap();
 
     // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
@@ -68,8 +177,8 @@ pub fn run() {
     // ControlFlow::Wait pauses the event loop if no events are available to process.
     // This is ideal for non-game applications that only update in response to user
     // input, and uses significantly less power/CPU time than ControlFlow::Poll.
-    event_loop.set_control_flow(ControlFlow::Wait);
+    // event_loop.set_control_flow(ControlFlow::Wait);
 
     let mut app = App::default();
-    event_loop.run_app(&mut app);
+    let _ = event_loop.run_app(&mut app);
 }
