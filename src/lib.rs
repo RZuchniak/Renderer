@@ -1,5 +1,3 @@
-mod lib1;
-
 use winit::{
     application::ApplicationHandler,
     event::*,
@@ -7,9 +5,11 @@ use winit::{
     keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowId},
 };
+use pollster::FutureExt as _;
+use std::sync::Arc;
 
-struct State<'a> {
-    surface: wgpu::Surface<'a>,
+struct State {
+    surface: wgpu::Surface<'static>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -17,12 +17,13 @@ struct State<'a> {
     // The window must be declared after the surface so
     // it gets dropped after it as the surface contains
     // unsafe references to the window's resources.
-    window: &'a Window,
+    window: Arc<Window>,
 }
 
-impl<'a> State<'a> {
+impl State {
     // Creating some of the wgpu types requires async code
-    async fn new(window: &'a Window) -> State<'a> {
+    async fn new(window: Window) -> State {
+        let window = Arc::new(window);
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -33,7 +34,7 @@ impl<'a> State<'a> {
             ..Default::default()
         });
 
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = instance.create_surface(window.clone()).unwrap();
 
         let adapter = instance.request_adapter(
             &wgpu::RequestAdapterOptions {
@@ -104,21 +105,22 @@ impl<'a> State<'a> {
     }
 }
 
-#[derive(Default)]
-struct App {
-    window: Option<Window>,
+enum App {
+    Initialized(State),
+    Uninitialized,
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.window = Some(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
+        let window = event_loop.create_window(Window::default_attributes()).unwrap();
+        let state = State::new(window).block_on();
+        *self = App::Initialized(state);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+        let App::Initialized(state) = self else {
+            return;
+        };
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -147,7 +149,7 @@ impl ApplicationHandler for App {
                 // You only need to call this if you've determined that you need to redraw in
                 // applications which do not always need to. Applications that redraw continuously
                 // can render here instead.
-                self.window.as_ref().unwrap().request_redraw();
+                state.window.request_redraw();
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -166,7 +168,7 @@ impl ApplicationHandler for App {
     }
 }
 
-pub async fn run() {
+pub fn run() {
 
     let event_loop = EventLoop::new().unwrap();
 
@@ -179,6 +181,6 @@ pub async fn run() {
     // input, and uses significantly less power/CPU time than ControlFlow::Poll.
     // event_loop.set_control_flow(ControlFlow::Wait);
 
-    let mut app = App::default();
+    let mut app = App::Uninitialized;
     let _ = event_loop.run_app(&mut app);
 }
