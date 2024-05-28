@@ -4,6 +4,7 @@ use winit::{
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
     window::{Window, WindowId},
+    event,
 };
 use pollster::FutureExt as _;
 use std::sync::Arc;
@@ -89,19 +90,56 @@ impl State {
     }
 
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        todo!()
+        if new_size.width > 0 && new_size.height > 0 {
+            self.size = new_size;
+            self.config.width = new_size.width;
+            self.config.height = new_size.height;
+            self.surface.configure(&self.device, &self.config);
+            self.window().request_redraw();
+        }
     }
 
     fn input(&mut self, event: &WindowEvent) -> bool {
-        todo!()
+        false
     }
 
     fn update(&mut self) {
-        todo!()
+
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        todo!()
+        let output = self.surface.get_current_texture()?;
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("Render Encoder"),
+        });
+
+        {
+            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("Render Pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+        output.present();
+
+        Ok(())
     }
 }
 
@@ -121,6 +159,12 @@ impl ApplicationHandler for App {
         let App::Initialized(state) = self else {
             return;
         };
+        if id != state.window.id() {
+            return;
+        }
+        if state.input(&event) {
+            return;
+        }
         match event {
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
@@ -136,6 +180,17 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
+                state.update();
+                state.window().request_redraw();
+                match state.render() {
+                    Ok(_) => {}
+
+                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+
+                    Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),
+
+                    Err(e) => eprintln!("{:?}", e),
+                }
                 // Redraw the application.
                 //
                 // It's preferable for applications that do not render continuously to render in
@@ -149,8 +204,8 @@ impl ApplicationHandler for App {
                 // You only need to call this if you've determined that you need to redraw in
                 // applications which do not always need to. Applications that redraw continuously
                 // can render here instead.
-                state.window.request_redraw();
             }
+
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -162,6 +217,9 @@ impl ApplicationHandler for App {
             } => {
                 println!("Up arrow");
                 // event_loop.exit();
+            }
+            WindowEvent::Resized(physical_size) => {
+                state.resize(physical_size);
             }
             _ => (),
         }
