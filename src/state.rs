@@ -1,9 +1,17 @@
-use wgpu::core::device;
+use wgpu::{core::device, util::DeviceExt};
 use winit::{
     event::*,
     window::Window,
 };
 use std::sync::Arc;
+use bytemuck;
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
 
 pub struct State {
     pub surface: wgpu::Surface<'static>,
@@ -16,6 +24,7 @@ pub struct State {
     // unsafe references to the window's resources.
     pub window: Arc<Window>,
     pub render_pipeline: wgpu::RenderPipeline,
+    pub vertex_buffer: wgpu::Buffer,
 }
 
 impl State {
@@ -119,6 +128,21 @@ impl State {
             multiview: None,
         });
 
+        const VERTICES: &[Vertex] = &[
+            Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
+            Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
+            Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+        ];
+
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Vertex Buffer"),
+                contents: bytemuck::cast_slice(VERTICES),
+                usage: wgpu::BufferUsages::VERTEX,
+
+            }
+        );
+
         Self {
             window,
             surface,
@@ -127,6 +151,7 @@ impl State {
             config,
             size,
             render_pipeline,
+            vertex_buffer,
         }
     }
 

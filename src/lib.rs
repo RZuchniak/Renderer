@@ -8,6 +8,12 @@ use winit::{
 use pollster::FutureExt as _;
 mod state;
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct Vertex {
+    position: [f32; 3],
+    color: [f32; 3],
+}
 
 pub enum App {
     Initialized(state::State),
