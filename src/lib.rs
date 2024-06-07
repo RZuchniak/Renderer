@@ -7,12 +7,13 @@ use winit::{
 };
 use pollster::FutureExt as _;
 mod state;
+mod texture;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
     position: [f32; 3],
-    color: [f32; 3],
+    tex_coords: [f32; 2],
 }
 
 pub enum App {
