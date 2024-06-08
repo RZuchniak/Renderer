@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.86"
 bytemuck = { version = "1.16.0", features = [ "derive" ] }
+cgmath = "0.18.0"
 cmake = "0.1.50"
 env_logger = "0.11.3"
 log = "0.4.21"

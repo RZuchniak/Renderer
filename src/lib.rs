@@ -8,6 +8,7 @@ use winit::{
 use pollster::FutureExt as _;
 mod state;
 mod texture;
+mod camera;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
