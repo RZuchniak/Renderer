@@ -3,8 +3,10 @@ use std::sync::Arc;
 use wgpu::{core::device, util::DeviceExt};
 use winit::{event::*, window::Window};
 use crate::camera::CameraUniform;
+use crate::camera_controller::CameraController;
 use crate::texture;
 use crate::camera;
+use crate::camera_controller;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -33,6 +35,7 @@ pub struct State {
     pub camera_uniform: CameraUniform,
     pub camera_buffer: wgpu::Buffer,
     pub camera_bind_group: wgpu::BindGroup,
+    pub camera_controller: CameraController,
 }
 
 impl Vertex {
@@ -305,6 +308,8 @@ impl State {
             multiview: None,
         });
 
+        let camera_controller = CameraController::new(0.2);
+
         Self {
             window,
             surface,
@@ -322,6 +327,7 @@ impl State {
             camera_uniform,
             camera_buffer,
             camera_bind_group,
+            camera_controller,
         }
     }
 
@@ -341,10 +347,14 @@ impl State {
     }
 
     pub fn input(&mut self, event: &WindowEvent) -> bool {
-        false
+        self.camera_controller.process_events(event)
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        self.camera_controller.update_camera(&mut self.camera);
+        self.camera_uniform.update_view_proj(&self.camera);
+        self.queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[self.camera_uniform]));
+    }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;

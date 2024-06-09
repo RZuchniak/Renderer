@@ -9,6 +9,7 @@ use pollster::FutureExt as _;
 mod state;
 mod texture;
 mod camera;
+mod camera_controller;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -78,19 +79,6 @@ impl ApplicationHandler for App {
                 // You only need to call this if you've determined that you need to redraw in
                 // applications which do not always need to. Applications that redraw continuously
                 // can render here instead.
-            }
-
-            WindowEvent::KeyboardInput {
-                event:
-                    KeyEvent {
-                        state: ElementState::Pressed,
-                        physical_key: PhysicalKey::Code(KeyCode::ArrowUp),
-                        ..
-                    },
-                ..
-            } => {
-                println!("Up arrow");
-                // event_loop.exit();
             }
             WindowEvent::Resized(physical_size) => {
                 state.resize(physical_size);
