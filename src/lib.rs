@@ -11,13 +11,11 @@ mod state;
 mod texture;
 mod camera;
 mod camera_controller;
+mod model;
+mod resources;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub struct Vertex {
-    position: [f32; 3],
-    tex_coords: [f32; 2],
-}
 
 pub struct InstanceObj {
     position: cgmath::Vector3<f32>,

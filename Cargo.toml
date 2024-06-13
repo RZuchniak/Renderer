@@ -8,13 +8,21 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.86"
 bytemuck = { version = "1.16.0", features = [ "derive" ] }
+cfg-if = "1.0.0"
 cgmath = "0.18.0"
 cmake = "0.1.50"
 env_logger = "0.11.3"
 log = "0.4.21"
 pollster = "0.3.0"
+reqwest = "0.12.4"
+tobj = { version = "4.0.2", features = [ "async", ] }
 wgpu = "0.20.0"
 winit =  { version = "0.30.0", features = ["rwh_05"] }
+
+[build-dependencies]
+anyhow = "1.0"
+fs_extra = "1.2"
+glob = "0.3"
 
 [dependencies.image]
 version = "0.25.1"
