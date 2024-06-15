@@ -1,4 +1,4 @@
-use std::io::{BufReader, Cursor};
+use std::{io::{BufReader, Cursor}, path::PathBuf};
 
 use cfg_if::cfg_if;
 use wgpu::util::DeviceExt;
@@ -71,10 +71,12 @@ pub async fn load_model(
     queue: &wgpu::Queue,
     layout: &wgpu::BindGroupLayout,
 ) -> anyhow::Result<model::Model> {
+    let root = PathBuf::from(env!("OUT_DIR")).join("res").join(file_name);
+    let root = root.parent().unwrap();
     let obj_text = load_string(file_name).await?;
     let obj_cursor = Cursor::new(obj_text);
     let mut obj_reader = BufReader::new(obj_cursor);
-    
+
     let (models, obj_materials) = tobj::load_obj_buf_async(
         &mut obj_reader,
         &tobj::LoadOptions {
@@ -83,7 +85,7 @@ pub async fn load_model(
             ..Default::default()
         },
         |p| async move {
-            let mat_text = load_string(&p).await.unwrap();
+            let mat_text = load_string(root.join(p).to_str().unwrap()).await.unwrap();
             tobj::load_mtl_buf(&mut BufReader::new(Cursor::new(mat_text)))
         },
     )
@@ -91,7 +93,7 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        let diffuse_texture = load_texture(&m.diffuse_texture.unwrap(), device, queue).await?;
+        let diffuse_texture = load_texture(root.join(m.diffuse_texture.unwrap()).to_str().unwrap(), device, queue).await?;
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout,
             entries: &[
