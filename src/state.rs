@@ -11,6 +11,7 @@ use crate::resources;
 use crate::texture;
 use crate::InstanceObj;
 use crate::InstanceRaw;
+use crate::LightUniform;
 use bytemuck;
 use cgmath::prelude::*;
 use std::sync::Arc;
@@ -197,10 +198,52 @@ impl State {
         let depth_texture =
             texture::Texture::create_depth_texture(&device, &config, "depth_texture");
 
+            let light_uniform = LightUniform {
+                position: [2.0, 2.0, 2.0],
+                _padding: 0,
+                color: [1.0, 1.0, 1.0],
+                _padding2: 0,
+            };
+    
+            let light_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Light VB"),
+                contents: bytemuck::cast_slice(&[light_uniform]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            });
+    
+            let light_bind_group_layout = device.create_bind_group_layout(
+                &wgpu::BindGroupLayoutDescriptor {
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer { 
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    }],
+                    label: None,
+                }
+            );
+    
+            let light_bind_group = device.create_bind_group(
+                &wgpu::BindGroupDescriptor {
+                    layout: &light_bind_group_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: light_buffer.as_entire_binding(),
+                        }
+                    ],
+                    label: None,
+                }
+            );
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout],
+                bind_group_layouts: &[&texture_bind_group_layout, &camera_bind_group_layout, &light_bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -294,6 +337,8 @@ impl State {
                 .await
                 .unwrap();
 
+        
+
         Self {
             window,
             surface,
@@ -345,6 +390,11 @@ impl State {
             0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
+
+        let old_position: cgmath::Vector3<_> = self.light_uniform.position.into();
+        self.light_uniform.position = (cgmath::Quaternion::from_axis_angle((0.0, 1.0, 0.0).into(), cgmath::Deg(1.0)) * old_position).into();
+        self.queue.write_buffer(&self.light_buffer, 0, bytemuch::cast_slice(&[self.light_uniform]));
+
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

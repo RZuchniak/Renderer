@@ -22,6 +22,13 @@ pub struct InstanceObj {
     rotation: cgmath::Quaternion<f32>,
 }
 
+pub struct LightUniform {
+    position: [f32; 3],
+    _padding: u32,
+    color: [f32; 3],
+    _padding2: u32,
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct InstanceRaw {
