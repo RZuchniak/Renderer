@@ -304,6 +304,8 @@ impl State {
 
                     let position = cgmath::Vector3 { x, y: 0.0, z };
 
+                    
+
                     let rotation = if position.is_zero() {
                         cgmath::Quaternion::from_axis_angle(
                             cgmath::Vector3::unit_z(),
@@ -311,7 +313,8 @@ impl State {
                         )
                     } else {
                         cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                    };
+                    }; 
+                    
 
                     InstanceObj { position, rotation }
                 })
