@@ -286,7 +286,7 @@ impl State {
             )
         };
 
-        let camera_controller = CameraController::new(0.2);
+        let camera_controller = CameraController::new(0.02);
 
         const NUM_INTANCES_PER_ROW: u32 = 10;
         const INSTANCE_DISPLACEMENT: cgmath::Vector3<f32> = cgmath::Vector3::new(
@@ -304,8 +304,6 @@ impl State {
 
                     let position = cgmath::Vector3 { x, y: 0.0, z };
 
-                    
-
                     let rotation = if position.is_zero() {
                         cgmath::Quaternion::from_axis_angle(
                             cgmath::Vector3::unit_z(),
@@ -313,8 +311,7 @@ impl State {
                         )
                     } else {
                         cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                    }; 
-                    
+                    };
 
                     InstanceObj { position, rotation }
                 })
@@ -394,7 +391,7 @@ impl State {
 
         let old_position: cgmath::Vector3<_> = self.light_uniform.position.into();
         self.light_uniform.position =
-            (cgmath::Quaternion::from_axis_angle((0.0, 1.0, 0.0).into(), cgmath::Deg(1.0))
+            (cgmath::Quaternion::from_axis_angle((0.0, 1.0, 0.0).into(), cgmath::Deg(0.2))
                 * old_position)
                 .into();
         self.queue.write_buffer(
